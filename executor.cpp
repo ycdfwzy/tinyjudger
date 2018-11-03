@@ -31,25 +31,80 @@ void setLimit(int r, int rcur, int rmax = -1)  {
 		rmax = rcur;
 	struct rlimit l;
 	if (getrlimit(r, &l) == -1) {
-		exit(55);
+		exit(getrlimitError);
 	}
 	l.rlim_cur = rcur;
 	l.rlim_max = rmax;
 	if (setrlimit(r, &l) == -1) {
-		exit(55);
+		exit(setrlimitError);
 	}
 }
 
 void childMainWork(){
+	// cout << "in child Main Work" << endl;
+	printf("in child Main Work\n");
 	setLimit(RLIMIT_CPU, runConfig.lim.time, runConfig.lim.realTime);
 	// rlimit store space in bytes
 	setLimit(RLIMIT_FSIZE, runConfig.lim.output << 20);
 	setLimit(RLIMIT_STACK, runConfig.lim.stack << 20);
 
+	// char path[128];
+	// if (getcwd(path, 128) != NULL);
+	// 	printf("pwd=%s\n", path);
+
+	printf("inputFileName=%s\n", runConfig.inputFileName.c_str());
+	// cout << "inputFileName=" << runConfig.inputFileName << endl;
+	if (runConfig.inputFileName != "stdin"){
+		if (freopen(runConfig.inputFileName.c_str(), "r", stdin) == NULL){
+			// cout << "error when open inputFileName" << endl;
+			printf("error when open inputFileName\n");
+			exit(openinputfileError);
+		}
+	}
+
+	// cout << "outputFileName=" << runConfig.outputFileName << endl;
+	printf("outputFileName=%s\n", runConfig.outputFileName.c_str());
+	if (runConfig.outputFileName != "stdout" && runConfig.outputFileName != "stderr") {
+		if (freopen(runConfig.outputFileName.c_str(), "w", stdout) == NULL){
+			// cout << "error when open outputFileName" << endl;
+			printf("error when open outputFileName\n");
+			exit(openoutputfileError);
+		}
+	}
+
+	// cout << "errorFileName=" << runConfig.errorFileName << endl;
+	printf("errorFileName=%s\n", runConfig.errorFileName.c_str());
+	if (runConfig.errorFileName != "stderr") {
+		if (runConfig.errorFileName == "stdout"){
+			if (dup2(STDOUT_FILENO, STDERR_FILENO) == -1){
+				// cout << "error when dup stdout to stderr" << endl;
+				printf("error when dup stdout to stderr\n");
+				exit(dup2Error);
+			}
+		} else
+		{
+			if (freopen(runConfig.errorFileName.c_str(), "w", stderr) == NULL) {
+				// cout << "error when open inputFileName" << endl;
+				printf("error when open inputFileName\n");
+				exit(openerrorfileError);
+			}
+		}
+
+		if (runConfig.outputFileName == "stderr") {
+			if (dup2(STDERR_FILENO, STDOUT_FILENO) == -1){
+				// cout << "error when dup stderr to stdout" << endl;
+				printf("error when dup stderr to stdout\n");
+				exit(dup2Error);
+			}
+		}
+	}
+
+
 	// let parent trace this program
 	if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1){
-		cout << "ptrace error. errno = " << errno << endl;
-		exit(16);
+		// cout << "ptrace error. errno = " << errno << endl;
+		printf("ptrace error. errno = %d", errno);
+		exit(tracemeError);
 	}
 
 	size_t sz = runConfig.argArr.size();
@@ -61,13 +116,19 @@ void childMainWork(){
 	}
 	argv[sz] = NULL;
 
-	// for (int i = 0; i < sz; ++i){
-	// 	cout << string(argv[i]) << endl;
-	// }
+	for (int i = 0; i < sz; ++i){
+		// cout << string(argv[i]) << endl;
+		printf("%s ", argv[i]);
+	}
+	printf("\n");
+
+	// if (getcwd(path, 128) != NULL);
+	// 	printf("pwd=%s\n", path);
     
     if (execv(argv[0], argv) == -1){
-    	cout << "execv error. errno = " << errno << endl;
-    	exit(17);
+    	// cout << "execv error. errno = " << errno << endl;
+    	printf("execv error. errno = %d", errno);
+    	exit(execvError);
     }
 }
 
@@ -140,19 +201,22 @@ void on_syscall_exit(pid_t){
 	return;
 }
 
-JudgeResult parentMainWork(pid_t childpid){
+RunResult parentMainWork(pid_t childpid){
 	cntProcess = 0;
 	if (!add_process(childpid)){
-		cout << "Error while add_process first." << endl;
-		return JudgementFailed;
+		// cout << "Error while add_process first." << endl;
+		printf("Error while add_process first.\n");
+		return RunResult(JudgementFailed);
 	}
 
-	cout << "chidpid = " << childpid << endl;
+	// cout << "childpid = " << childpid << endl;
+	printf("childpid=%d\n", childpid);
 	apid = fork();
 
 	if (apid < 0){
-		cout << "Error while forking in parentMainWork. errno = " << errno << endl;
-		return JudgementFailed;
+		printf("Error while forking in parentMainWork. errno = %d\n", errno);
+		// cout << "Error while forking in parentMainWork. errno = " << errno << endl;
+		return RunResult(JudgementFailed);
 	} else
 	if (apid == 0){
 		/* avoid too long TLE */
@@ -160,11 +224,12 @@ JudgeResult parentMainWork(pid_t childpid){
 		t.tv_sec = runConfig.lim.time;
 		t.tv_nsec = 0;
 		nanosleep(&t, NULL);
-		exit(0);
+		exit(NoError);
 	} else
 
 	{
-		cout << "in father process!" << endl;
+		// cout << "in father process!" << endl;
+		printf("in father process!\n");
 		while (true){
 			int stat = 0;
 			int sig = 0;
@@ -173,53 +238,61 @@ JudgeResult parentMainWork(pid_t childpid){
 			pid_t p = wait4(-1, &stat, __WALL, &ruse);
 			if (p == apid){
 				if (WIFEXITED(stat) || WIFSIGNALED(stat)) {
-					cout << "TLE detected by assist process!" << endl;
-					return TimeLimitExceed;
+					// cout << "TLE detected by assist process!" << endl;
+					printf("TLE detected by assist process!\n");
+					return RunResult(TimeLimitExceed);
 				}
 				continue;
 			}
 
 			int idx = index_process(p);
 			if (idx < 0){
-				cout << "new process! pid = " << p << endl;
+				// cout << "new process! pid = " << p << endl;
+				printf("new process! pid = %d\n", p);
 				if (!add_process(p)){
 					kill_process();
-					cout << "DSC detected by add_process failed!" << endl;
-					return DangerSystemCall;
+					printf("DSC detected by add_process failed!\n");
+					// cout << "DSC detected by add_process failed!" << endl;
+					return RunResult(DangerSystemCall);
 				}
 				idx = index_process(p);
 			}
 
-			// check TLE
 			int usertim = ruse.ru_utime.tv_sec * 1000 + ruse.ru_utime.tv_usec / 1000;
+			int usermem = ruse.ru_maxrss;
+			// check TLE
 			if (usertim > runConfig.lim.time*1000) {
 				kill_process();
-				cout << "TLE detected by rusage!" << endl;
-				return TimeLimitExceed;
+				printf("TLE detected by rusage!\n");
+				// cout << "TLE detected by rusage!" << endl;
+				return RunResult(TimeLimitExceed, usertim, usermem);
 			}
 			// check MLE
-			int usermem = ruse.ru_maxrss;
 			// cout << "Memory = " << usermem << "KB" << endl;
 			// cout << "Memory limit = " << runConfig.lim.memory << "MB" << endl;
 			if (usermem > runConfig.lim.memory*1024) {
 				kill_process();
-				cout << "MLE detected by rusage!" << endl;
-				return MemoryLimitExceed;
+				// cout << "MLE detected by rusage!" << endl;
+				printf("MLE detected by rusage!\n");
+				return RunResult(MemoryLimitExceed, usertim, usermem);
 			}
 
 
 			if (WIFEXITED(stat)){
-				cout << "in WIFEXITED" << endl;
+				// cout << "in WIFEXITED" << endl;
+				// printf("in WIFEXITED\n");
 				if (mp[idx].mode == NotStart){
 					kill_process();
-					cout << "JGF detected by mp[idx].mode == NotinProg" << endl;
-					return JudgementFailed;
+					// cout << "JGF detected by mp[idx].mode == NotStart" << endl;
+					printf("JGF detected by mp[idx].mode == NotStart\n");
+					return RunResult(JudgementFailed, usertim, usermem, WEXITSTATUS(stat));
 				} else
 				{
-					if (p == mp[0].pid){	// first process should be child process!
+					if (idx == 0){	// first process should be child process!
 						kill_process();
-						cout << "AC detected by child process " << endl;
-						return Accept;
+						// cout << "AC detected by child process " << endl;
+						printf("AC detected by child process\n");
+						return RunResult(Accept, usertim, usermem, WEXITSTATUS(stat));
 					} else
 					{
 						del_process(p);		// client program exit
@@ -229,21 +302,25 @@ JudgeResult parentMainWork(pid_t childpid){
 			}
 
 			if (WIFSIGNALED(stat)){
-				cout << "in WIFSIGNALED" << endl;
+				// cout << "in WIFSIGNALED" << endl;
+				// printf("in WIFSIGNALED\n");
 				if (p == mp[0].pid){
 					switch(WTERMSIG(stat)) {
 					case SIGXCPU: // nearly impossible
 						kill_process();
-						cout << "TLE detected by SIGNAL stat == SIGCPU" << endl;
-						return TimeLimitExceed;
+						// cout << "TLE detected by SIGNAL stat == SIGCPU" << endl;
+						printf("TLE detected by SIGNAL stat == SIGCPU\n");
+						return RunResult(TimeLimitExceed, usertim, usermem);
 					case SIGXFSZ:
 						kill_process();
-						cout << "OLE detected by SIGNAL stat == SIGXFSZ" << endl;
-						return OutputLimitExceed;
+						// cout << "OLE detected by SIGNAL stat == SIGXFSZ" << endl;
+						printf("OLE detected by SIGNAL stat == SIGXFSZ\n");
+						return RunResult(OutputLimitExceed, usertim, usermem);
 					default:
 						kill_process();
-						cout << "RE detected by SIGNAL stat default" << endl;
-						return RuntimeError;
+						// cout << "RE detected by SIGNAL stat default" << endl;
+						printf("RE detected by SIGNAL stat default\n");
+						return RunResult(RuntimeError, usertim, usermem);
 					}
 				} else
 				{
@@ -253,7 +330,8 @@ JudgeResult parentMainWork(pid_t childpid){
 			}
 
 			if (WIFSTOPPED(stat)){
-				cout << "in WIFSTOPPED" << endl;
+				// cout << "in WIFSTOPPED" << endl;
+				// printf("in WIFSTOPPED\n");
 				sig = WSTOPSIG(stat);
 
 				if (mp[idx].mode == NotStart){
@@ -274,9 +352,10 @@ JudgeResult parentMainWork(pid_t childpid){
 								ptrace_data |= PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK |PTRACE_O_TRACEEXEC;
 							}
 							if (ptrace(PTRACE_SETOPTIONS, p, NULL, ptrace_data) == -1){
-								cout << "ptrace PTRACE_SETOPTIONS for pid=" << p << endl;
+								// cout << "ptrace PTRACE_SETOPTIONS for pid=" << p << endl;
+								printf("ptrace PTRACE_SETOPTIONS for pid=%d\n", p);
 								kill_process();
-								return JudgementFailed;
+								return RunResult(JudgementFailed, usertim, usermem);
 							}
 						}
 						sig = 0;
@@ -290,8 +369,9 @@ JudgeResult parentMainWork(pid_t childpid){
 						// check safe syscall
 						if (runConfig.safe && !check_safe_syscall(p)){
 							kill_process();
-							cout << "DangerSystemCall detected by check_safe_syscall" << endl;
-							return DangerSystemCall;
+							// cout << "DangerSystemCall detected by check_safe_syscall" << endl;
+							printf("DangerSystemCall detected by check_safe_syscall\n");
+							return RunResult(DangerSystemCall);
 						}
 						mp[idx].mode = RunOtherProcess;
 					} else
@@ -319,18 +399,21 @@ JudgeResult parentMainWork(pid_t childpid){
 							break;
 						default:
 							kill_process();
-							cout << "sig == trap, but unknown ptrace event!" << endl;
-							return JudgementFailed;
+							// cout << "sig == trap, but unknown ptrace event!" << endl;
+							printf("sig == trap, but unknown ptrace event!\n");
+							return RunResult(JudgementFailed);
 					}
 				}
 
 				switch(sig) {
 					case SIGXCPU:
-						cout << "TLE detected by sig == stoped. SIGXCPU" << endl;
-						return TimeLimitExceed;
+						// cout << "TLE detected by sig == stoped. SIGXCPU" << endl;
+						printf("TLE detected by sig == stoped. SIGXCPU\n");
+						return RunResult(TimeLimitExceed);
 					case SIGXFSZ:
-						cout << "OLE detected by sig == stoped. SIGXFSZ" << endl;
-						return OutputLimitExceed;
+						// cout << "OLE detected by sig == stoped. SIGXFSZ" << endl;
+						printf("OLE detected by sig == stoped. SIGXFSZ\n");
+						return RunResult(OutputLimitExceed);
 				}
 			}
 			// Restart the stopped tracee as for PTRACE_CONT, but arrange for
@@ -344,21 +427,26 @@ JudgeResult parentMainWork(pid_t childpid){
 
 int main(int argc, char **argv){
 	parse_args(argc, argv, runConfig);
-	// for (int i = 0; i < runConfig.argArr.size(); ++i)
-	// 	cout << runConfig.argArr[i] << endl;
 
 	pid_t pid = fork();
 	if (pid < 0){
-		cout << "Error while forking" << endl;
+		// cout << "Error while forking" << endl;
+		printf("Error while forking\n");
 	} else
 	if (pid == 0){ // this is child process
-		cout << "This is child process!" << endl;
+		// cout << "This is child process!" << endl;
+		printf("This is child process!\n");
 		childMainWork();
 	} else
 	{	// this is parent process
-		cout << "This is parent process!" << endl;
-		JudgeResult x = parentMainWork(pid);
-		cout << x << endl;
+		// cout << "This is parent process!" << endl;
+		printf("This is parent process!\n");
+		RunResult x = parentMainWork(pid);
+		x.dump(runConfig.resultFileName.c_str());
+		// printf("time=%d\n", x.time);
+		// printf("mem=%d\n", x.memory);
+		// printf("JudgeResult=%d\n", x.jr);
+		// printf("ErrorCode=%d\n", x.ec);
 	}
 	return 0;
 }
