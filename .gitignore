@@ -30,4 +30,10 @@
 *.exe
 *.out
 *.app
-main
+exectuor
+tradiJudger
+test
+*.in
+*.out
+*.err
+*.txt
