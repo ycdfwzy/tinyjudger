@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include "configs.h"
 
-void parse_args(int argc, char **argv, RunConfig &runConfig);
+void exec_parse_args(int argc, char **argv, RunConfig &runConfig);
+void judger_parse_args(int argc ,char **argv, JudgerConfig &judgerConfig);
 
 #endif

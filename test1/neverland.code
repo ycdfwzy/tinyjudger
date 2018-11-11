@@ -1,0 +1,189 @@
+/*2012.6.2*/
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <assert.h>
+#include <cmath>
+using namespace std;
+#define PL printf("%d\n", __LINE__);
+#define MM(a, b) memset(a, b, sizeof(a));
+#define For(i, a) for (register int i = 0; i < (a); i++)
+#define Foru(i, a, b) for (register int i = (a); i < (b); i++)
+#define foru(i, a, b) for (register int i = (a); i <= (b); i++)
+#define ford(i, a, b) for (register int i = (a); i >= (b); i--)
+#define fore(i, a, b) for (register __typeof(a) i = (a); (i) != (b); (i)++)
+#define inf 1000000000
+#define linf 10000000000000000LL
+#define pb push_back
+#define mp make_pair
+#define eps 1e-7
+#define Walk(u) for (elist l = de[u]; l; l = l->next)
+#define bgn begin
+#define fi first
+#define se second
+#define ite iterator
+#define All(x) (x).bgn(), (x).end()
+#define sz(x) ((int)x.size())
+#define pq priority_queue
+typedef long long LL;
+typedef pair<int, int> pii;
+typedef vector<int> vi;
+
+struct point {
+	LL x, y;
+	void read() {scanf("%I64d%I64d", &x, &y);}
+	point(LL x_ = 0, LL y_ = 0) {x = x_, y = y_;}
+	LL len2() const {return x * x + y * y;}
+	point rot();
+};
+int n;
+point operator- (const point &a, const point &b) {return point(a.x - b.x, a.y - b.y);}
+LL operator% (const point &a, const point &b) {return a.x * b.y - a.y * b.x;}
+LL operator* (const point &a, const point &b) {return a.x * b.x + a.y * b.y;}
+point point::rot() {return point(-y, x);}
+
+//LL abs(LL a) {return a < 0 ? -a : a;}
+
+point p[1111111];
+point hull[1111111]; int hullN;
+
+bool cmp(const point &a, const point &b) {
+	LL tmp = (a - p[0]) % (b - p[0]);
+	if (tmp) return tmp > 0;
+	else return a.len2() < b.len2();
+}
+
+void GetConvex() {
+	For (i, n) if (p[i].y < p[0].y || (p[i].y == p[0].y && p[i].x < p[0].x)) swap(p[0], p[i]);
+	sort(p + 1, p + n, cmp);
+	int stop = 0;
+	For (i, n) {
+		while (stop >= 2 && (p[i] - hull[stop - 2]) % (hull[stop - 1] - hull[stop - 2]) >= 0) stop--;
+		hull[stop++] = p[i];
+	}
+	hullN = stop;
+}
+
+point ploy[2111111];
+
+const point D[8] = {point(1, 0), point(1, 1), point(0, 1), point(-1, 1),
+					point(-1, 0), point(-1, -1), point(0, -1), point(1, -1)};
+
+int GetDir(point v) {
+	For (k, 8) if (D[k] % v >= 0 && v % D[(k + 1) % 8] > 0) return k;
+	return -1;
+}
+
+point GetCross(point a, point b) {
+	point v = b - a;
+	int k = GetDir(v);
+	int dx = min(abs(int(a.x - b.x)), abs(int(a.y - b.y)));
+	if (k == 0) return point(b.x - dx, a.y);
+	if (k == 1) return point(b.x, a.y + dx);
+	if (k == 2) return point(a.x, b.y - dx);
+	if (k == 3) return point(a.x - dx, b.y);
+	if (k == 4) return point(b.x + dx, a.y);
+	if (k == 5) return point(b.x, a.y - dx);
+	if (k == 6) return point(a.x, b.y + dx);
+	if (k == 7) return point(a.x + dx, b.y);
+	return -1;
+}
+
+void GetPoly() {
+	int stop = 0;
+	For (i, hullN) {
+		ploy[stop++] = hull[i];
+		ploy[stop++] = GetCross(hull[i], hull[(i + 1) % hullN]);				
+	}
+	ploy[stop++] = ploy[0];
+	hullN = 0;
+	For (i, stop) {
+		while (hullN >= 2 && (ploy[i] - hull[hullN - 2]) % (hull[hullN - 1] - hull[hullN - 2]) == 0) hullN--;
+		hull[hullN++] = ploy[i];
+	}
+	hullN--;
+}
+
+int mother[1111111];
+int cnt[111];
+int res = 0;
+int _cnt[111];
+int pow2[1111111];
+int ans;
+bool exist[111], must[111];
+#define P 1000000007
+
+bool belong(point a, point b, point c) {
+	return (c - a) % (b - a) == 0 && (c - a) * (c - b) < 0;
+}
+
+void GetMother() {
+	MM(mother, -1);
+	MM(exist, 0); MM(cnt, 0); MM(_cnt, 0);
+	For (i, n) {
+		For (k, hullN) {
+			if (belong(hull[k], hull[(k + 1) % hullN], p[i])) {
+//				if (belong[i][0] == -1) belong[i][0] = k;
+//				else belong[i][1] = k;
+				mother[i] = 0;
+				cnt[k]++;
+			}
+			if (p[i].x == hull[k].x && p[i].y == hull[k].y) exist[k] = true, mother[i] = 0;
+		}
+	}
+	For (i, hullN) {
+		if ((hull[(i + 2) % hullN] - hull[(i + 1) % hullN]) % (hull[(i + 1) % hullN] - hull[i % hullN]).rot() <= 0) must[(i + 1) % hullN] = true;
+	}
+}
+
+void DFS(int dep) {
+	if (dep == hullN) {
+		LL res = 1;
+		For (i, hullN) {
+			res = res * (pow2[cnt[i]] - (_cnt[i] == 0)) % P;
+		}
+		res %= P;
+		ans = (ans + res) % P;
+		return;
+	}
+	if (exist[dep]) {
+		_cnt[dep]++;
+		_cnt[(dep - 1 + hullN) % hullN]++;
+		DFS(dep + 1);
+		_cnt[dep]--;
+		_cnt[(dep - 1 + hullN) % hullN]--;
+		if (!must[dep]) DFS(dep + 1);
+	} else DFS(dep + 1);
+}
+
+bool AllInLine() {
+	Foru (i, 2, n) if ((p[1] - p[0]) % (p[i] - p[0]) != 0) return false;
+	return true;
+}
+
+int main() {
+	//freopen("neverland.in", "r", stdin);
+	//freopen("neverland.out", "w", stdout);
+	pow2[0] = 1;
+	foru (i, 1, 1000000) pow2[i] = pow2[i - 1] * 2 % P;
+	scanf("%d", &n);
+	For (i, n) p[i].read();
+	if (AllInLine()) {
+		printf("%d\n", pow2[n - 2]);
+		return 0;
+	}
+	GetConvex();
+	GetPoly();
+	GetMother();
+	ans = 0;
+	DFS(0);
+	For (i, n) if (mother[i] == -1) ans = ans * 2 % P;
+	printf("%d\n", ans);
+	return 0;
+}

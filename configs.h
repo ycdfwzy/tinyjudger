@@ -70,9 +70,27 @@ public:
 	std::vector<std::string> argArr;
 };
 
+class JudgerConfig{
+public:
+	std::string inputPre;
+	std::string inputSuf;
+	std::string outputPre;
+	std::string outputSuf;
+	std::string checker;
+	std::string Lang;
+	std::string dataDir;
+	std::string sourceDir;
+	std::string source;
+	int time;
+	int memory;
+	int output;
+	int ntests;
+};
+
 const runLimit defaultLimit(1, 128, 64, 1024);
 const runLimit compileLimit(15, 512, 64, 1024);
-const runLimit runningLimit(1, 256,64, 1024);
+const runLimit runningLimit(1, 256, 64, 1024);
+const runLimit checkerLimit(2, 256, 64, 1024);
 
 class RunResult{
 public:
@@ -145,6 +163,48 @@ public:
 		}
 		close(fd);
 	}
+};
+
+class CheckerResult{
+public:
+	JudgeResult jr;
+	int time;	// ms
+	int memory;	// kb
+	bool success;
+	std::string info;
+
+	CheckerResult(JudgeResult _jr, int _time = -1, int _memory = -1, bool _success=false)
+				: jr(_jr), time(_time), memory(_memory), success(_success){
+		this->info = "";
+	}
+
+	void getInfo(const char* file){
+		char buf[512];
+		int fd = open(file, O_RDONLY);
+		if (fd < 0){
+			std::cout << "open file failed when getInfo" << std::endl;
+			return;
+		}
+		this->info = "";
+		ssize_t len = read(fd, buf, 512);
+		for (int i = 0 ; i < 500 && i < len; ++i)
+			this->info += buf[i];
+		if (len > 500){
+			this->info += std::string("...");
+		}
+		close(fd);
+	}
+};
+
+class JudgerResult{
+public:
+	std::string result;
+	int time;	// ms
+	int memory;	// kb
+	std::string info;
+
+	JudgerResult(const std::string &res = "Accept", int _time = -1, int _memory = -1, const std::string& _info = "")
+				: result(res), time(_time), memory(_memory), info(_info){}
 };
 
 #endif

@@ -84,8 +84,8 @@ void childMainWork(){
 		} else
 		{
 			if (freopen(runConfig.errorFileName.c_str(), "w", stderr) == NULL) {
-				// cout << "error when open inputFileName" << endl;
-				printf("error when open inputFileName\n");
+				// cout << "error when open errorFileName" << endl;
+				printf("error when open errorFileName\n");
 				exit(openerrorfileError);
 			}
 		}
@@ -426,7 +426,7 @@ RunResult parentMainWork(pid_t childpid){
 }
 
 int main(int argc, char **argv){
-	parse_args(argc, argv, runConfig);
+	exec_parse_args(argc, argv, runConfig);
 
 	pid_t pid = fork();
 	if (pid < 0){

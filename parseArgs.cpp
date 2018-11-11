@@ -1,9 +1,9 @@
 #include "parseArgs.h"
 #include <argp.h>
 
-char argp_args_doc[] = "run program arg1, arg2, ...";
-char argp_doc[] = "A tool to run clients' program on server safely";
-argp_option argp_options[] = {
+char exec_argp_args_doc[] = "run program arg1, arg2, ...";
+char exec_argp_doc[] = "A tool to run clients' program on server safely";
+argp_option exec_argp_options[] = {
 	{"tl"                 , 'T', "TIME_LIMIT"  , 0, "Set time limit (in second)"                            ,  1},
 	{"rtl"                , 'R', "TIME_LIMIT"  , 0, "Set real time limit (in second)"                       ,  2},
 	{"ml"                 , 'M', "MEMORY_LIMIT", 0, "Set memory limit (in mb)"                              ,  3},
@@ -18,7 +18,7 @@ argp_option argp_options[] = {
 	{"unsafe"             , 501, 0             , 0, "Don't check dangerous syscalls"                        , 12},
 	{0}
 };
-error_t argp_parse_opt (int key, char *arg, struct argp_state *state) {
+error_t exec_argp_parse_opt (int key, char *arg, struct argp_state *state) {
 	RunConfig *config = (RunConfig*)state->input;
 	char rp[PATH_MAX+1];
 
@@ -84,11 +84,11 @@ error_t argp_parse_opt (int key, char *arg, struct argp_state *state) {
 	return 0;
 }
 
-argp margs = {
-	argp_options,
-	argp_parse_opt,
-	argp_args_doc,
-	argp_doc
+argp exec_margs = {
+	exec_argp_options,
+	exec_argp_parse_opt,
+	exec_argp_args_doc,
+	exec_argp_doc
 };
 
 std::string getCurDir(){
@@ -100,7 +100,7 @@ std::string getCurDir(){
 	return std::string(cur);
 }
 
-void parse_args(int argc, char **argv, RunConfig &runConfig){
+void exec_parse_args(int argc, char **argv, RunConfig &runConfig){
 	runConfig.resultFileName = "stdout";
 	runConfig.inputFileName = "stdin";
 	runConfig.outputFileName = "stdout";
@@ -111,7 +111,7 @@ void parse_args(int argc, char **argv, RunConfig &runConfig){
 	runConfig.safe = true;
 
 	// Todo: parse arguments
-	argp_parse(&margs, argc, argv, ARGP_NO_ARGS | ARGP_IN_ORDER, 0, &runConfig);
+	argp_parse(&exec_margs, argc, argv, ARGP_NO_ARGS | ARGP_IN_ORDER, 0, &runConfig);
 
 	if (runConfig.lim.realTime == -1)
 		runConfig.lim.realTime = runConfig.lim.time+2;
@@ -125,4 +125,96 @@ void parse_args(int argc, char **argv, RunConfig &runConfig){
 			exit(JudgementFailed);
 		}
 	}
+}
+
+char judger_argp_args_doc[] = "run program arg1, arg2, ...";
+char judger_argp_doc[] = "A tool to run judger";
+argp_option judger_argp_options[] = {
+	{"tl"                 , 'T', "TIME_LIMIT"  , 0, "Set time limit (in second)"                            ,  1},
+	{"ml"                 , 'M', "MEMORY_LIMIT", 0, "Set memory limit (in mb)"                              ,  2},
+	{"ol"                 , 'O', "OUTPUT_LIMIT", 0, "Set output limit (in mb)"                              ,  3},
+	{"in-pre"             , 'p', "INPRE"       , 0, "Set input file prefix name"                            ,  4},
+	{"in-suf"             , 's', "INSUF"       , 0, "Set input file suffix name"                            ,  5},
+	{"out-pre"            , 'P', "OUTPRE"      , 0, "Set output file prefix name"                           ,  6},
+	{"out-suf"            , 'S', "OUTSUF"      , 0, "Set output file suffix name"                           ,  7},
+	{"Lang"               , 'L', "Language"    , 0, "Set the Language"                                      ,  8},
+	{"data-dir"           , 'd', "DATA_DIR"    , 0, "Set the data directory"                                ,  9},
+	{"checker"            , 'c', "CHECKER"     , 0, "Set the program type (for some program such as python)", 10},
+	{"n-tests"            , 'n', "NTESTS"      , 0, "Set the number of tests"                               , 11},
+	{"source-name"        , 'f', "SOURCE_FILE" , 0, "Set the source file name"                              , 12},
+	{"source-dir"         , 'D', "SOURCE_DIR"  , 0, "Set the source file directory"                         , 13},
+	{0}
+};
+
+error_t judger_argp_parse_opt (int key, char *arg, struct argp_state *state){
+	JudgerConfig *config = (JudgerConfig*)state->input;
+
+	switch (key){
+		case 'T':
+			config->time = atoi(arg);
+			break;
+		case 'M':
+			config->memory = atoi(arg);
+			break;
+		case 'O':
+			config->output = atoi(arg);
+			break;
+		case 'p':
+			config->inputPre = arg;
+			break;
+		case 's':
+			config->inputSuf = arg;
+			break;
+		case 'P':
+			config->outputPre = arg;
+			break;
+		case 'S':
+			config->outputSuf = arg;
+			break;
+		case 'L':
+			config->Lang = arg;
+			break;
+		case 'd':
+			config->dataDir = arg;
+			break;
+		case 'c':
+			config->checker = arg;
+			break;
+		case 'n':
+			config->ntests = atoi(arg);
+			break;
+		case 'f':
+			config->source = arg;
+			break;
+		case 'D':
+			config->sourceDir = arg;
+			break;
+		default:
+			return ARGP_ERR_UNKNOWN;
+	}
+
+	return 0;
+}
+
+argp judger_margs = {
+	judger_argp_options,
+	judger_argp_parse_opt,
+	judger_argp_args_doc,
+	judger_argp_doc
+};
+
+void judger_parse_args(int argc ,char **argv, JudgerConfig &judgerConfig){
+	judgerConfig.time = 1;
+	judgerConfig.memory = 128;
+	judgerConfig.output = 64;
+	judgerConfig.inputPre = "test";
+	judgerConfig.inputSuf = "in";
+	judgerConfig.outputPre = "test";
+	judgerConfig.outputSuf = "ans";
+	judgerConfig.checker = "ncmp";
+	judgerConfig.Lang = "C";
+	judgerConfig.dataDir = "/tmp";
+	judgerConfig.ntests = 10;
+
+	argp_parse(&judger_margs, argc, argv, ARGP_NO_ARGS | ARGP_IN_ORDER, 0, &judgerConfig);
 }

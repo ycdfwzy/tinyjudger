@@ -1,5 +1,6 @@
 #ifndef tinyjudger_tradiJudger_H
 #define tinyjudger_tradiJudger_H
+
 #include <string>
 #include <cstring>
 #include <algorithm>
@@ -20,7 +21,7 @@ int execute(const char* cmd){
 	return system(cmd);
 }
 
-string Pathjoin(string path, string file){
+string Pathjoin(const string& path, const string& file){
 	if (path.length() == 0 || (path.length() > 0 && path[path.length()-1] == '/')){
 		return path+file;
 	} else
@@ -73,7 +74,7 @@ CompileResult runCompiler(
 	va_list ap;
 	va_start(ap, compilepath);
 	for (const char* args = va_arg(ap, const char *); args; args = va_arg(ap, const char *)){
-		cout << string(args) << endl;
+		// cout << string(args) << endl;
 		compileConfig.argArr.push_back(string(args));
 	}
 	va_end(ap);
@@ -109,10 +110,10 @@ RunResult runProgram(
 	RunConfig runningConfig;
 	runningConfig.lim = runningLimit;
 	runningConfig.argArr.clear();
-	runningConfig.resultFileName = Pathjoin(string(runningpath), resfile);
-	runningConfig.inputFileName = Pathjoin(string(runningpath), infile);
-	runningConfig.outputFileName = Pathjoin(string(runningpath), outfile);
-	runningConfig.errorFileName = Pathjoin(string(runningpath), errfile);
+	runningConfig.resultFileName = Pathjoin(string(runningpath), string(resfile));
+	runningConfig.inputFileName = Pathjoin(string(runningpath), string(infile));
+	runningConfig.outputFileName = Pathjoin(string(runningpath), string(outfile));
+	runningConfig.errorFileName = Pathjoin(string(runningpath), string(errfile));
 	runningConfig.Lang = language;
 	runningConfig.path = string(runningpath);
 	runningConfig.safe = true;
@@ -120,12 +121,59 @@ RunResult runProgram(
 	va_list ap;
 	va_start(ap, language);
 	for (const char* args = va_arg(ap, const char *); args; args = va_arg(ap, const char *)){
-		cout << string(args) << endl;
+		// cout << string(args) << endl;
 		runningConfig.argArr.push_back(string(args));
 	}
 	va_end(ap);
 
 	return runExecutor(runningConfig);
+}
+
+CheckerResult runChecker(
+	const char* path,
+	const char* checker,
+	const char* resfile,
+	const char* errfile,
+	const char* inputfile,
+	const char* outputfile,
+	const char* ansfile,
+	const char* rptfile){
+
+	RunConfig checkerConfig;
+	checkerConfig.lim = checkerLimit;
+	checkerConfig.resultFileName = Pathjoin(string(path), string(resfile));
+	checkerConfig.inputFileName = "stdin";
+	checkerConfig.outputFileName = "stdout";
+	checkerConfig.errorFileName = Pathjoin(string(path), string(errfile));
+	checkerConfig.Lang = "checker";
+	checkerConfig.path = string(path);
+	checkerConfig.safe = true;
+
+	checkerConfig.argArr.clear();
+	checkerConfig.argArr.push_back(string(checker));
+	checkerConfig.argArr.push_back(string(inputfile));
+	checkerConfig.argArr.push_back(string(outputfile));
+	checkerConfig.argArr.push_back(string(ansfile));
+	checkerConfig.argArr.push_back(string(rptfile));
+
+	RunResult res = runExecutor(checkerConfig);
+
+	cout << "checker res = " << JudgeResult2string(res.jr) << endl;
+
+	CheckerResult ret(res.jr, res.time, res.memory,
+					(res.jr == Accept) && (res.ec == NoError));
+	if (!ret.success){
+		if (res.ec != NoError){
+			ret.getInfo(rptfile);
+		} else
+		if (res.jr == JudgementFailed){
+			ret.info = "No Comment!";
+		} else
+		{
+			ret.info = "Check Failed: " + JudgeResult2string(res.jr);
+		}
+	}
+	return ret;
 }
 
 #endif

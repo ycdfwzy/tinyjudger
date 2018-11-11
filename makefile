@@ -29,8 +29,8 @@ all: $(EXE)
 % : %.cpp checkers/testlib.h
 	g++ $< -o $@
 
-tradiJudger: tradiJudger.cpp configs.o tradiJudger.h
-	g++ tradiJudger.cpp configs.o -o tradiJudger
+tradiJudger: tradiJudger.cpp configs.o parseArgs.o tradiJudger.h
+	g++ tradiJudger.cpp configs.o parseArgs.o -o tradiJudger
 executor: executor.cpp parseArgs.o configs.o
 	g++ executor.cpp parseArgs.o configs.o -o executor
 parseArgs.o: parseArgs.cpp parseArgs.h configs.h
@@ -38,4 +38,6 @@ parseArgs.o: parseArgs.cpp parseArgs.h configs.h
 configs.o: configs.cpp configs.h
 	g++ -c configs.cpp -o configs.o
 clean:
+	rm *.o tradiJudger executor
+clean_all:
 	rm *.o $(EXE)
