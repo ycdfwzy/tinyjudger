@@ -33,6 +33,7 @@
 exectuor
 tradiJudger
 test
+test1
 *.in
 *.out
 *.err
