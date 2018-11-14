@@ -18,8 +18,12 @@ from base import BaseHandler
 define("port", default=12345, help="run on the given port", type=int)
 
 class traditionalJudger(tornado.web.RequestHandler):
+	def get(self):
+		self.write('Hello')
+
 	def post(self):
-		data = self.request.body
+		data = json.loads(self.request.body.decode())
+		# print(data)
 		judger = subprocess.Popen( ['./tradiJudger', \
 									'--tl=%d' % data['TIME_LIMIT'],
 									'--ml=%d' % data['MEMORY_LIMIT'],\
@@ -35,6 +39,11 @@ class traditionalJudger(tornado.web.RequestHandler):
 									'--source-name=%s' % data['SOURCE_FILE'],\
 									'--source-dir=%s' % data['SOURCE_DIR']
 									], stdout=subprocess.PIPE)
+		judger.wait()
+		with open("result.json", "r", encoding='utf-8') as f:
+			judgerResult = json.dumps(json.load(f))
+			# print(judgerResult)
+			self.write(judgerResult)
 
 
 class Application(tornado.web.Application):
@@ -49,17 +58,17 @@ class Application(tornado.web.Application):
 		super(Application, self).__init__(handlers, **settings)
 
 if __name__ == "__main__":
-	judger = subprocess.Popen( ['./tradiJudger', \
-								'--tl=1', '--ml=256', '--ol=64',\
-								'--in-pre=test', '--in-suf=in',\
-								'--out-pre=test', '--out-suf=out',\
-								'--Lang=C++',\
-								'--data-dir=/home/ycdfwzy/myworkspace/tinyjudger/test/',\
-								'--checker=ncmp',  '--n-tests=2', '--source-name=test',\
-								'--source-dir=/home/ycdfwzy/myworkspace/tinyjudger/test/'
-								], stdout=subprocess.PIPE)
-	time.sleep(1)
-	judger.kill()
-	# app = Application()
-	# app.listen(options.port)
-	# tornado.ioloop.IOLoop.current().start()
+	# judger = subprocess.Popen( ['./tradiJudger', \
+	# 							'--tl=1', '--ml=256', '--ol=64',\
+	# 							'--in-pre=test', '--in-suf=in',\
+	# 							'--out-pre=test', '--out-suf=out',\
+	# 							'--Lang=C++',\
+	# 							'--data-dir=/home/ycdfwzy/myworkspace/tinyjudger/test/',\
+	# 							'--checker=ncmp',  '--n-tests=2', '--source-name=test',\
+	# 							'--source-dir=/home/ycdfwzy/myworkspace/tinyjudger/test/'
+	# 							], stdout=subprocess.PIPE)
+	# time.sleep(1)
+	# judger.kill()
+	app = Application()
+	app.listen(options.port)
+	tornado.ioloop.IOLoop.current().start()

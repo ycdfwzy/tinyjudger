@@ -1,5 +1,6 @@
 #include "tradiJudger.h"
 #include "parseArgs.h"
+#include <fstream>
 
 using namespace std;
 const string checker_dir = "/home/ycdfwzy/myworkspace/tinyjudger/checkers";
@@ -59,7 +60,10 @@ JudgerResult run_C_CPP(const JudgerConfig& judgerConfig){
 
 				if (!cr.success){
 					judgerResult.result = "Wrong Answer";
-					judgerResult.info = cr.info;
+					oss.clear();
+					oss.str("");
+					oss << "TESTCASE #" << i << ": ";
+					judgerResult.info = oss.str()+cr.info;
 					break;
 				}
 
@@ -131,7 +135,10 @@ JudgerResult run_Python(const JudgerConfig& judgerConfig){
 											Pathjoin(judgerConfig.dataDir, reportfile).c_str());
 			if (!cr.success){
 				judgerResult.result = "Wrong Answer";
-				judgerResult.info = cr.info;
+				oss.clear();
+				oss.str("");
+				oss << "TESTCASE #" << i << ": ";
+				judgerResult.info = oss.str()+cr.info;
 				break;
 			}
 		} else
@@ -201,10 +208,13 @@ int main(int argc, char** argv){
 	JudgerConfig judgerConfig;
 	judger_parse_args(argc, argv, judgerConfig);
 	JudgerResult judgerResult = main_test(judgerConfig);
-	cout << "Result:" << endl;
-	cout << judgerResult.result << endl;
-	cout << judgerResult.info << endl;
-	cout << "time=" << judgerResult.time << "ms" << endl;
-	cout << "memory=" << judgerResult.memory << "kb" << endl;
+	ofstream fout("result.json");
+	fout << "{" << endl;
+	fout << "    \"Result\" : \"" << judgerResult.result << "\"," << endl;
+	fout << "    \"time\" : " << judgerResult.time << "," << endl;
+	fout << "    \"memory\" : " << judgerResult.memory << "," << endl;
+	fout << "    \"Info\" : \"" << judgerResult.info << "\"" << endl;
+	fout << "}" << endl;
+	fout.close();
 	return 0;
 }
