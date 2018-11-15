@@ -1,5 +1,5 @@
-#include "tradiJudger.h"
-#include "parseArgs.h"
+#include "utils/tradiJudger.h"
+#include "utils/parseArgs.h"
 #include <fstream>
 
 using namespace std;

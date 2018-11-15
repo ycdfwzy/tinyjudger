@@ -38,6 +38,8 @@ test1
 *.out
 *.err
 *.txt
+result.*
+*.res
 
 # python
 __pycache__

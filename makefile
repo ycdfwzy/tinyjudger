@@ -30,16 +30,16 @@ all: $(EXE)
 % : %.cpp checkers/testlib.h
 	g++ $< -o $@
 
-scriptJudger: scriptJudger.cpp configs.o parseArgs.o scriptJudger.h
-	g++ scriptJudger.cpp configs.o parseArgs.o -o scriptJudger
-tradiJudger: tradiJudger.cpp configs.o parseArgs.o tradiJudger.h
-	g++ tradiJudger.cpp configs.o parseArgs.o -o tradiJudger
-executor: executor.cpp parseArgs.o configs.o
-	g++ executor.cpp parseArgs.o configs.o -o executor
-parseArgs.o: parseArgs.cpp parseArgs.h configs.h
-	g++ -c parseArgs.cpp -o parseArgs.o
-configs.o: configs.cpp configs.h
-	g++ -c configs.cpp -o configs.o
+scriptJudger: scriptJudger.cpp utils/configs.o utils/parseArgs.o utils/scriptJudger.h
+	g++ scriptJudger.cpp utils/configs.o utils/parseArgs.o -o scriptJudger
+tradiJudger: tradiJudger.cpp utils/configs.o utils/parseArgs.o utils/tradiJudger.h
+	g++ tradiJudger.cpp utils/configs.o utils/parseArgs.o -o tradiJudger
+executor: utils/executor.cpp utils/parseArgs.o utils/configs.o
+	g++ utils/executor.cpp utils/parseArgs.o utils/configs.o -o executor
+utils/parseArgs.o: utils/parseArgs.cpp utils/parseArgs.h utils/configs.h
+	g++ -c utils/parseArgs.cpp -o utils/parseArgs.o
+utils/configs.o: utils/configs.cpp utils/configs.h
+	g++ -c utils/configs.cpp -o utils/configs.o
 clean:
 	rm *.o scriptJudger tradiJudger executor
 clean_all:
