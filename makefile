@@ -20,6 +20,7 @@ CHECKER_EXE = \
 	checkers/yesno
 
 EXE = \
+	scriptJudger \
 	tradiJudger \
 	executor \
 	$(CHECKER_EXE)
@@ -29,6 +30,8 @@ all: $(EXE)
 % : %.cpp checkers/testlib.h
 	g++ $< -o $@
 
+scriptJudger: scriptJudger.cpp configs.o parseArgs.o scriptJudger.h
+	g++ scriptJudger.cpp configs.o parseArgs.o -o scriptJudger
 tradiJudger: tradiJudger.cpp configs.o parseArgs.o tradiJudger.h
 	g++ tradiJudger.cpp configs.o parseArgs.o -o tradiJudger
 executor: executor.cpp parseArgs.o configs.o
@@ -38,6 +41,6 @@ parseArgs.o: parseArgs.cpp parseArgs.h configs.h
 configs.o: configs.cpp configs.h
 	g++ -c configs.cpp -o configs.o
 clean:
-	rm *.o tradiJudger executor
+	rm *.o scriptJudger tradiJudger executor
 clean_all:
 	rm *.o $(EXE)

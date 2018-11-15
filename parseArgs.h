@@ -13,6 +13,7 @@
 #include "configs.h"
 
 void exec_parse_args(int argc, char **argv, RunConfig &runConfig);
-void judger_parse_args(int argc ,char **argv, JudgerConfig &judgerConfig);
+void tradi_judger_parse_args(int argc ,char **argv, JudgerConfig &judgerConfig);
+void script_judger_parse_args(int argc ,char **argv, RunConfig &runConfig);
 
 #endif

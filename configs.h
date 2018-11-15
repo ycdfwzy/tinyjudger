@@ -108,10 +108,11 @@ public:
 		return RunResult(JudgementFailed);
 	}
 
-	static RunResult load(const char* file){
+	static RunResult load(const char* file) {
 		RunResult ret(JudgementFailed);
 		FILE* fd = fopen(file, "r");
 		int judgeresult, errorcode;
+
 		if ( fd == NULL || fscanf(fd, "%d %d %d %d",
 				&judgeresult, &ret.time, &ret.memory, &errorcode) < 4){
 			if (fd != NULL)
@@ -125,12 +126,26 @@ public:
 	}
 
 	bool dump(const char* file){
-		FILE* fd = fopen(file, "w");
-		if ( fd == NULL){
+		FILE* fd = NULL;
+		if (strcmp(file, "stdout") == 0){
+			fd = stdout;
+		} else
+		if (strcmp(file, "stderr") == 0){
+			fd = stderr;
+		} else
+		{
+			fd = fopen(file, "w");
+		}
+		if (fd == NULL){
 			return false;
 		}
+
 		fprintf(fd, "%d %d %d %d\n", this->jr, this->time, this->memory, this->ec);
-		fclose(fd);
+		if (strcmp(file, "stdout") != 0 &&
+			strcmp(file, "stderr") != 0){
+			fclose(fd);
+		}
+		
 		return true;
 	}
 };

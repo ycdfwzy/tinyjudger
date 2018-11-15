@@ -206,7 +206,7 @@ JudgerResult main_test(const JudgerConfig& judgerConfig){
 
 int main(int argc, char** argv){
 	JudgerConfig judgerConfig;
-	judger_parse_args(argc, argv, judgerConfig);
+	tradi_judger_parse_args(argc, argv, judgerConfig);
 	JudgerResult judgerResult = main_test(judgerConfig);
 	ofstream fout("result.json");
 	fout << "{" << endl;

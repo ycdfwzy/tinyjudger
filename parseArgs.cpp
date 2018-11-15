@@ -122,14 +122,23 @@ void exec_parse_args(int argc, char **argv, RunConfig &runConfig){
 		runConfig.path = getCurDir();
 		if (runConfig.path.empty()){
 			std::cout << "JudgementFailed for no path!" << std::endl;
+			RunResult x = RunResult(JudgementFailed);
+			x.dump(runConfig.resultFileName.c_str());
+			exit(JudgementFailed);
+		}
+	} else
+	{
+		if (chdir(runConfig.path.c_str()) == -1){
+			RunResult x = RunResult(JudgementFailed);
+			x.dump(runConfig.resultFileName.c_str());
 			exit(JudgementFailed);
 		}
 	}
 }
 
-char judger_argp_args_doc[] = "run program arg1, arg2, ...";
-char judger_argp_doc[] = "A tool to run judger";
-argp_option judger_argp_options[] = {
+char tradi_judger_argp_args_doc[] = "run program arg1, arg2, ...";
+char tradi_judger_argp_doc[] = "A tool to run traditional judger";
+argp_option tradi_judger_argp_options[] = {
 	{"tl"                 , 'T', "TIME_LIMIT"  , 0, "Set time limit (in second)"                            ,  1},
 	{"ml"                 , 'M', "MEMORY_LIMIT", 0, "Set memory limit (in mb)"                              ,  2},
 	{"ol"                 , 'O', "OUTPUT_LIMIT", 0, "Set output limit (in mb)"                              ,  3},
@@ -146,7 +155,7 @@ argp_option judger_argp_options[] = {
 	{0}
 };
 
-error_t judger_argp_parse_opt (int key, char *arg, struct argp_state *state){
+error_t tradi_judger_argp_parse_opt (int key, char *arg, struct argp_state *state){
 	JudgerConfig *config = (JudgerConfig*)state->input;
 
 	switch (key){
@@ -196,14 +205,14 @@ error_t judger_argp_parse_opt (int key, char *arg, struct argp_state *state){
 	return 0;
 }
 
-argp judger_margs = {
-	judger_argp_options,
-	judger_argp_parse_opt,
-	judger_argp_args_doc,
-	judger_argp_doc
+argp tradi_judger_margs = {
+	tradi_judger_argp_options,
+	tradi_judger_argp_parse_opt,
+	tradi_judger_argp_args_doc,
+	tradi_judger_argp_doc
 };
 
-void judger_parse_args(int argc ,char **argv, JudgerConfig &judgerConfig){
+void tradi_judger_parse_args(int argc ,char **argv, JudgerConfig &judgerConfig){
 	judgerConfig.time = 1;
 	judgerConfig.memory = 128;
 	judgerConfig.output = 64;
@@ -216,5 +225,78 @@ void judger_parse_args(int argc ,char **argv, JudgerConfig &judgerConfig){
 	judgerConfig.dataDir = "/tmp";
 	judgerConfig.ntests = 10;
 
-	argp_parse(&judger_margs, argc, argv, ARGP_NO_ARGS | ARGP_IN_ORDER, 0, &judgerConfig);
+	argp_parse(&tradi_judger_margs, argc, argv, ARGP_NO_ARGS | ARGP_IN_ORDER, 0, &judgerConfig);
+}
+
+char script_judger_argp_args_doc[] = "run program arg1, arg2, ...";
+char script_judger_argp_doc[] = "A tool to run script judger";
+argp_option script_judger_argp_options[] = {
+	{"tl"                 , 'T', "TIME_LIMIT"  , 0, "Set time limit (in second)"                            ,  1},
+	{"ml"                 , 'M', "MEMORY_LIMIT", 0, "Set memory limit (in mb)"                              ,  2},
+	{"ol"                 , 'O', "OUTPUT_LIMIT", 0, "Set output limit (in mb)"                              ,  3},
+	{"work-path"          , 'w', "WORK_PATH"   , 0, "Set work path"                                         ,  4},
+	{0}
+};
+
+error_t script_judger_argp_parse_opt (int key, char *arg, struct argp_state *state){
+	RunConfig *config = (RunConfig*)state->input;
+	char rp[PATH_MAX+1];
+
+	switch (key){
+		case 'T':
+			config->lim.time = atoi(arg);
+			break;
+		case 'M':
+			config->lim.memory = atoi(arg);
+			break;
+		case 'O':
+			config->lim.output = atoi(arg);
+			break;
+		case 'w':
+			if (realpath(arg, rp) == NULL){
+				std::cout << "error in realpath; path = " << arg << std::endl;
+				config->path = "";
+			} else
+				config->path = std::string(rp);
+			if (config->path.empty()) {
+				argp_usage(state);
+			}
+			break;
+		case ARGP_KEY_ARG:
+			config->argArr.push_back(arg);
+			for (int i = state->next; i < state->argc; i++) {
+				config->argArr.push_back(state->argv[i]);
+			}
+			state->next = state->argc;
+			break;
+		case ARGP_KEY_END:
+			if (state->arg_num == 0) {
+				argp_usage(state);
+			}
+			break;
+		default:
+			return ARGP_ERR_UNKNOWN;
+	}
+
+	return 0;
+}
+
+argp script_judger_margs = {
+	script_judger_argp_options,
+	script_judger_argp_parse_opt,
+	script_judger_argp_args_doc,
+	script_judger_argp_doc
+};
+
+void script_judger_parse_args(int argc ,char **argv, RunConfig &runConfig){
+	runConfig.lim = defaultLimit;
+	runConfig.resultFileName = "stdout";
+	runConfig.inputFileName = "stdin";
+	runConfig.outputFileName = "stdout";
+	runConfig.errorFileName = "stderr";
+	runConfig.Lang = "script";
+	runConfig.path = getCurDir();
+	runConfig.safe = true;
+
+	argp_parse(&script_judger_margs, argc, argv, ARGP_NO_ARGS | ARGP_IN_ORDER, 0, &runConfig);
 }
